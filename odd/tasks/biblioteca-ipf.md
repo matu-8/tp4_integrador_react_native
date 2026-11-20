@@ -17,9 +17,9 @@ Tracking ODD specification and tasks.
 
 ## Tasks
 
-- T1 [S3, S9]: Limpieza de boilerplate, sistema de diseño src/constants/tema.ts, types y api.ts [inline] (pending)
-- T2 [S3]: Catálogo de libros src/data/libros.ts con 15 libros incluyendo los 2 reales [inline] (pending)
-- T3 [S4]: Estructuras Pila y Cola con pruebas de invariantes [inline] (pending)
+- T1 [S3, S9]: Limpieza de boilerplate, sistema de diseño src/constants/tema.ts, types y api.ts [inline] (done - a810e31)
+- T2 [S3]: Catálogo de libros src/data/libros.ts con 15 libros incluyendo los 2 reales y alumno.ts [inline] (done - a810e31)
+- T3 [S4]: Estructuras Pila y Cola con pruebas de invariantes [inline] (verified, ready for commit)
 - T4 [S4, S8]: Contexto global de reservas, préstamos, recientes y sesión [inline] (pending)
 - T5 [S2, S8]: Layouts de navegación Expo Router y rutas protegidas [inline] (pending)
 - T6 [S5, S6]: Pantallas de Catálogo, Detalle y Buscador [inline] (pending)
