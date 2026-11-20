@@ -14,6 +14,11 @@ import type { Libro } from '../types';
 const DIAS_PRESTAMO = 7;
 const MAX_RECIENTES = 3;
 
+const ESPERAS_INICIALES: Record<string, string[]> = {
+  '9780201485677': ['Lucía Gómez'],
+  '9781491950296': ['Martín Sosa', 'Valentina Paz'],
+};
+
 export type Prestamo = {
   isbn: string;
   recordar: boolean;
@@ -30,6 +35,7 @@ export type BibliotecaContexto = {
   sesionIniciada: boolean;
   prestamos: Prestamo[];
   recientes: Libro[];
+  avisos: string[];
   iniciarSesion: (usuario: string, clave: string) => boolean;
   cerrarSesion: () => void;
   registrarReciente: (libro: Libro) => void;
@@ -42,6 +48,7 @@ export type BibliotecaContexto = {
   ejemplaresDisponibles: (libro: Libro) => number;
   activarRecordatorio: (isbn: string, activo: boolean, notificacionId: string | null) => void;
   entregarSiguiente: (isbn: string) => string | null;
+  agregarAviso: (mensaje: string) => void;
 };
 
 const ContextoBiblioteca = createContext<BibliotecaContexto | null>(null);
@@ -56,7 +63,8 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
   const [sesionIniciada, setSesionIniciada] = useState<boolean>(false);
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [recientes, setRecientes] = useState<Libro[]>([]);
-  const [esperas, setEsperas] = useState<Record<string, string[]>>({});
+  const [esperas, setEsperas] = useState<Record<string, string[]>>(ESPERAS_INICIALES);
+  const [avisos, setAvisos] = useState<string[]>([]);
 
   const iniciarSesion = useCallback((usuario: string, clave: string): boolean => {
     const valido =
@@ -74,14 +82,14 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
 
   const registrarReciente = useCallback((libro: Libro) => {
     setRecientes((previos) => {
-      const pila = new Pila<Libro>();
-      previos.forEach((item) => pila.apilar(item));
-      if (pila.tope()?.isbn === libro.isbn) {
+      if (previos[0]?.isbn === libro.isbn) {
         return previos;
       }
-      const actualizada = previos.filter((item) => item.isbn !== libro.isbn);
+      const pila = new Pila<Libro>();
+      [...previos].reverse().forEach((item) => pila.apilar(item));
+      const sinDuplicado = pila.aArray().filter((item) => item.isbn !== libro.isbn);
       const nuevaPila = new Pila<Libro>();
-      actualizada.forEach((item) => nuevaPila.apilar(item));
+      sinDuplicado.forEach((item) => nuevaPila.apilar(item));
       nuevaPila.apilar(libro);
       return nuevaPila.aArray().slice(-MAX_RECIENTES).reverse();
     });
@@ -140,8 +148,7 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
       (esperas[libro.isbn] ?? []).forEach((persona) => cola.encolar(persona));
       cola.encolar(ALUMNO.identificadorUsuario);
       const posicion = cola.tamanio;
-      const nuevaCola = cola.aArray();
-      setEsperas((previas) => ({ ...previas, [libro.isbn]: nuevaCola }));
+      setEsperas((previas) => ({ ...previas, [libro.isbn]: cola.aArray() }));
       return { tipo: 'espera', posicion };
     },
     [ejemplaresDisponibles, esperas, estaEnEspera, tienePrestamo],
@@ -175,11 +182,16 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
     [esperas],
   );
 
+  const agregarAviso = useCallback((mensaje: string) => {
+    setAvisos((previos) => [mensaje, ...previos]);
+  }, []);
+
   const valor = useMemo<BibliotecaContexto>(
     () => ({
       sesionIniciada,
       prestamos,
       recientes,
+      avisos,
       iniciarSesion,
       cerrarSesion,
       registrarReciente,
@@ -192,11 +204,13 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
       ejemplaresDisponibles,
       activarRecordatorio,
       entregarSiguiente,
+      agregarAviso,
     }),
     [
       sesionIniciada,
       prestamos,
       recientes,
+      avisos,
       iniciarSesion,
       cerrarSesion,
       registrarReciente,
@@ -209,6 +223,7 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
       ejemplaresDisponibles,
       activarRecordatorio,
       entregarSiguiente,
+      agregarAviso,
     ],
   );
 
