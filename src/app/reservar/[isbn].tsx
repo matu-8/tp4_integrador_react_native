@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useLibros } from '../../hooks/useLibros';
@@ -12,7 +12,7 @@ export default function ReservarScreen() {
   const { libros, cargando, error, reintentar } = useLibros();
   const { reservar } = useBiblioteca();
   const [resultado, setResultado] = useState<ResultadoReserva | null>(null);
-  const ejecutado = useRef<boolean>(false);
+  const confirmado = useRef<boolean>(false);
 
   const libro = libros.find((item) => item.isbn === isbn);
 
@@ -21,12 +21,13 @@ export default function ReservarScreen() {
     router.navigate('/reservas');
   };
 
-  useEffect(() => {
-    if (libro && !ejecutado.current) {
-      ejecutado.current = true;
-      setResultado(reservar(libro));
+  const confirmarReserva = () => {
+    if (!libro || confirmado.current) {
+      return;
     }
-  }, [libro, reservar]);
+    confirmado.current = true;
+    setResultado(reservar(libro));
+  };
 
   const cuerpo = () => {
     if (cargando) {
@@ -65,8 +66,12 @@ export default function ReservarScreen() {
     if (!resultado) {
       return (
         <View style={styles.centrado}>
-          <Stack.Screen options={{ title: 'Reservar' }} />
-          <ActivityIndicator size="large" color={tema.colores.primario} />
+          <Stack.Screen options={{ title: 'Confirmar reserva' }} />
+          <Text style={styles.titulo}>Confirmá tu reserva</Text>
+          <Text style={styles.mensaje}>{libro.titulo}</Text>
+          <Pressable accessibilityRole="button" onPress={confirmarReserva} style={styles.boton}>
+            <Text style={styles.textoBoton}>Confirmar</Text>
+          </Pressable>
         </View>
       );
     }

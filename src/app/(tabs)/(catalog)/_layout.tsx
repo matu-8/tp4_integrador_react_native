@@ -2,6 +2,10 @@ import { Stack } from 'expo-router';
 import { BotonPersonal } from '../../../components/BotonPersonal';
 import { tema } from '../../../constants/tema';
 
+export const unstable_settings = {
+  anchor: 'index',
+};
+
 export default function CatalogLayout() {
   return (
     <Stack

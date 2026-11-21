@@ -9,8 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Stack } from 'expo-router';
+import { getPermissionsAsync } from 'expo-notifications';
 import { useLibros } from '../hooks/useLibros';
-import { usePermiso } from '../hooks/usePermiso';
 import { useBiblioteca } from '../context/BibliotecaContext';
 import { ALUMNO } from '../constants/alumno';
 import { tema } from '../constants/tema';
@@ -20,7 +20,6 @@ import type { Libro } from '../types';
 export default function MostradorScreen() {
   const { libros, cargando, error, reintentar } = useLibros();
   const { esperaDe, entregarSiguiente, agregarAviso, cerrarSesion } = useBiblioteca();
-  const { estado: estadoNotificaciones } = usePermiso('notificaciones');
   const [procesando, setProcesando] = useState<string | null>(null);
 
   const conEspera = libros.filter((libro) => esperaDe(libro.isbn).length > 0);
@@ -35,7 +34,10 @@ export default function MostradorScreen() {
     }
 
     if (siguiente === ALUMNO.identificadorUsuario) {
-      if (estadoNotificaciones === 'concedido') {
+      const respuesta = await getPermissionsAsync().catch(() => null);
+      const concedido = respuesta?.granted === true || respuesta?.status === 'granted';
+
+      if (concedido) {
         await enviarAvisoDisponible(libro.titulo).catch(() => undefined);
         Alert.alert('Entrega registrada', `Se avisó a ${siguiente} que "${libro.titulo}" está disponible.`);
       } else {

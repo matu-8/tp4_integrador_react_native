@@ -1,7 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -9,10 +11,17 @@ import {
 import { Cola, Pila } from '../estructuras';
 import { ALUMNO } from '../constants/alumno';
 import { CREDENCIALES_PERSONAL } from '../constants/personal';
+import { cancelarNotificacionesHuerfanas } from '../lib/notificaciones';
 import type { Libro } from '../types';
 
 const DIAS_PRESTAMO = 7;
 const MAX_RECIENTES = 3;
+
+const CLAVES = {
+  prestamos: '@biblioteca:prestamos',
+  esperas: '@biblioteca:esperas',
+  avisos: '@biblioteca:avisos',
+} as const;
 
 const ESPERAS_INICIALES: Record<string, string[]> = {
   '9780201485677': ['Lucía Gómez'],
@@ -33,6 +42,7 @@ export type ResultadoReserva =
 
 export type BibliotecaContexto = {
   sesionIniciada: boolean;
+  hidratando: boolean;
   prestamos: Prestamo[];
   recientes: Libro[];
   avisos: string[];
@@ -59,12 +69,80 @@ function calcularFechaDevolucion(): string {
   return fecha.toISOString();
 }
 
+function parsear<T>(valor: string | null, fallback: T): T {
+  if (!valor) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(valor) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function BibliotecaProvider({ children }: { children: ReactNode }) {
   const [sesionIniciada, setSesionIniciada] = useState<boolean>(false);
+  const [hidratando, setHidratando] = useState<boolean>(true);
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [recientes, setRecientes] = useState<Libro[]>([]);
   const [esperas, setEsperas] = useState<Record<string, string[]>>(ESPERAS_INICIALES);
   const [avisos, setAvisos] = useState<string[]>([]);
+
+  useEffect(() => {
+    let activo = true;
+
+    (async () => {
+      const resultados = await AsyncStorage.multiGet([
+        CLAVES.prestamos,
+        CLAVES.esperas,
+        CLAVES.avisos,
+      ]);
+      if (!activo) {
+        return;
+      }
+
+      const prestamosGuardados = parsear<Prestamo[]>(resultados[0][1], []);
+      const esperasGuardadas = parsear<Record<string, string[]>>(
+        resultados[1][1],
+        ESPERAS_INICIALES,
+      );
+      const avisosGuardados = parsear<string[]>(resultados[2][1], []);
+
+      setPrestamos(Array.isArray(prestamosGuardados) ? prestamosGuardados : []);
+      setEsperas(
+        esperasGuardadas && typeof esperasGuardadas === 'object'
+          ? esperasGuardadas
+          : ESPERAS_INICIALES,
+      );
+      setAvisos(Array.isArray(avisosGuardados) ? avisosGuardados : []);
+
+      const identificadoresValidos = prestamosGuardados
+        .filter((prestamo) => Boolean(prestamo?.notificacionId))
+        .map((prestamo) => prestamo.notificacionId as string);
+      await cancelarNotificacionesHuerfanas(identificadoresValidos);
+    })()
+      .catch(() => undefined)
+      .finally(() => {
+        if (activo) {
+          setHidratando(false);
+        }
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (hidratando) {
+      return;
+    }
+    AsyncStorage.multiSet([
+      [CLAVES.prestamos, JSON.stringify(prestamos)],
+      [CLAVES.esperas, JSON.stringify(esperas)],
+      [CLAVES.avisos, JSON.stringify(avisos)],
+    ]).catch(() => undefined);
+  }, [hidratando, prestamos, esperas, avisos]);
 
   const iniciarSesion = useCallback((usuario: string, clave: string): boolean => {
     const valido =
@@ -189,6 +267,7 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
   const valor = useMemo<BibliotecaContexto>(
     () => ({
       sesionIniciada,
+      hidratando,
       prestamos,
       recientes,
       avisos,
@@ -208,6 +287,7 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
     }),
     [
       sesionIniciada,
+      hidratando,
       prestamos,
       recientes,
       avisos,

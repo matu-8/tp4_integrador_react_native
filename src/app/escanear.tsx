@@ -1,48 +1,62 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { CameraView, type BarcodeScanningResult } from 'expo-camera';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { useLibros } from '../hooks/useLibros';
+import { usePermiso } from '../hooks/usePermiso';
 import { tema } from '../constants/tema';
 
 const ISBN_VALIDO = /^\d{13}$/;
 
 export default function EscanearScreen() {
-  const [permiso, pedirPermiso] = useCameraPermissions();
+  const { estado: estadoCamara, pedirPermiso } = usePermiso('camara');
   const { libros, cargando: cargandoCatalogo, error: errorCatalogo } = useLibros();
-  const [escaneando, setEscaneando] = useState<boolean>(true);
+  const escaneandoRef = useRef<boolean>(true);
   const [isbnManual, setIsbnManual] = useState<string>('');
 
   useFocusEffect(
     useCallback(() => {
-      setEscaneando(true);
+      escaneandoRef.current = true;
+      return () => {
+        escaneandoRef.current = false;
+      };
     }, []),
   );
 
   const procesarCodigo = (codigo: string) => {
-    if (!escaneando) {
+    if (!escaneandoRef.current) {
       return;
     }
 
     const valor = codigo.trim();
     if (!ISBN_VALIDO.test(valor)) {
-      setEscaneando(false);
+      escaneandoRef.current = false;
       Alert.alert('Código no válido', 'El ISBN debe tener 13 dígitos.', [
-        { text: 'Reintentar', onPress: () => setEscaneando(true) },
+        {
+          text: 'Reintentar',
+          onPress: () => {
+            escaneandoRef.current = true;
+          },
+        },
       ]);
       return;
     }
 
     const catalogoListo = !cargandoCatalogo && !errorCatalogo;
     if (catalogoListo && !libros.some((libro) => libro.isbn === valor)) {
-      setEscaneando(false);
+      escaneandoRef.current = false;
       Alert.alert('Libro no encontrado', 'Ese ISBN no está en el catálogo de la biblioteca.', [
-        { text: 'Seguir escaneando', onPress: () => setEscaneando(true) },
+        {
+          text: 'Seguir escaneando',
+          onPress: () => {
+            escaneandoRef.current = true;
+          },
+        },
       ]);
       return;
     }
 
-    setEscaneando(false);
+    escaneandoRef.current = false;
     setIsbnManual('');
     router.push(`/libro/${valor}`);
   };
@@ -51,7 +65,7 @@ export default function EscanearScreen() {
     procesarCodigo(resultado.data);
   };
 
-  const conCamara = permiso?.granted === true;
+  const conCamara = estadoCamara === 'concedido';
 
   return (
     <View style={conCamara ? styles.contenedor : styles.contenedorSinCamara}>
@@ -63,7 +77,7 @@ export default function EscanearScreen() {
             style={styles.camara}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['ean13'] }}
-            onBarcodeScanned={escaneando ? manejarEscaneo : undefined}
+            onBarcodeScanned={manejarEscaneo}
           />
           <View style={styles.overlay}>
             <View style={styles.marco} />
@@ -76,17 +90,25 @@ export default function EscanearScreen() {
         {!conCamara && (
           <>
             <Text style={styles.mensaje}>
-              {permiso === null
+              {estadoCamara === 'cargando'
                 ? 'Preparando la cámara...'
                 : 'Sin cámara también podés encontrar el libro escribiendo su ISBN.'}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => (permiso?.canAskAgain ? pedirPermiso() : router.push('/permisos/camara'))}
-              style={styles.botonCamara}
-            >
-              <Text style={styles.textoBotonCamara}>Habilitar cámara</Text>
-            </Pressable>
+            {estadoCamara !== 'cargando' && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  if (estadoCamara === 'bloqueado') {
+                    router.push('/permisos/camara');
+                  } else {
+                    void pedirPermiso();
+                  }
+                }}
+                style={styles.botonCamara}
+              >
+                <Text style={styles.textoBotonCamara}>Habilitar cámara</Text>
+              </Pressable>
+            )}
           </>
         )}
 

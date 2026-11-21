@@ -2,6 +2,7 @@ import {
   AndroidImportance,
   SchedulableTriggerInputTypes,
   cancelScheduledNotificationAsync,
+  getAllScheduledNotificationsAsync,
   scheduleNotificationAsync,
   setNotificationChannelAsync,
   setNotificationHandler,
@@ -49,6 +50,21 @@ export async function programarRecordatorio(titulo: string): Promise<string> {
 
 export async function cancelarRecordatorio(identificador: string): Promise<void> {
   await cancelScheduledNotificationAsync(identificador).catch(() => undefined);
+}
+
+export async function cancelarNotificacionesHuerfanas(
+  identificadoresValidos: string[],
+): Promise<void> {
+  const programadas = await getAllScheduledNotificationsAsync().catch(() => []);
+  const validos = new Set(identificadoresValidos);
+
+  await Promise.all(
+    programadas
+      .filter((notificacion) => !validos.has(notificacion.identifier))
+      .map((notificacion) =>
+        cancelScheduledNotificationAsync(notificacion.identifier).catch(() => undefined),
+      ),
+  );
 }
 
 export async function enviarAvisoDisponible(titulo: string): Promise<void> {

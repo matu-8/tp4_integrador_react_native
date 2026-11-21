@@ -29,7 +29,7 @@ export default function ReservasScreen() {
   const { libros, cargando, error, reintentar } = useLibros();
   const { prestamos, avisos, esperaDe, estaEnEspera, posicionEnEspera, devolver, activarRecordatorio } =
     useBiblioteca();
-  const { estado: estadoPermiso, pedirPermiso } = usePermiso('notificaciones');
+  const { estado: estadoPermiso, pedirPermiso, abrirAjustes } = usePermiso('notificaciones');
   const [ocupado, setOcupado] = useState<string | null>(null);
 
   const buscarLibro = (isbn: string): Libro | undefined =>
@@ -101,6 +101,13 @@ export default function ReservasScreen() {
     (libro) => estaEnEspera(libro.isbn) && !reservasEnEspera.includes(libro.isbn),
   );
 
+  const textoEstadoPermiso = {
+    cargando: 'Consultando el estado de las notificaciones...',
+    concedido: 'Notificaciones activadas.',
+    preguntable: 'Activá las notificaciones para recibir avisos de disponibilidad.',
+    bloqueado: 'Las notificaciones están bloqueadas. Habilitalas desde Ajustes.',
+  }[estadoPermiso];
+
   return (
     <FlatList
       data={prestamos}
@@ -118,6 +125,23 @@ export default function ReservasScreen() {
               ))}
             </View>
           )}
+          <View style={styles.permisoCaja}>
+            <Text style={styles.permisoTexto}>{textoEstadoPermiso}</Text>
+            {estadoPermiso === 'preguntable' && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void pedirPermiso()}
+                style={styles.botonPrimario}
+              >
+                <Text style={styles.textoBotonPrimario}>Activar notificaciones</Text>
+              </Pressable>
+            )}
+            {estadoPermiso === 'bloqueado' && (
+              <Pressable accessibilityRole="button" onPress={abrirAjustes} style={styles.botonPrimario}>
+                <Text style={styles.textoBotonPrimario}>Ir a Ajustes</Text>
+              </Pressable>
+            )}
+          </View>
           <Text style={styles.seccionTitulo}>Mis préstamos</Text>
         </View>
       }
@@ -225,6 +249,17 @@ const styles = StyleSheet.create({
   avisoTexto: {
     fontSize: tema.tipografia.cuerpo.fontSize,
     color: tema.colores.texto,
+  },
+  permisoCaja: {
+    backgroundColor: tema.colores.superficie,
+    borderRadius: tema.radios.md,
+    padding: tema.espaciado.md,
+    marginBottom: tema.espaciado.md,
+  },
+  permisoTexto: {
+    fontSize: tema.tipografia.cuerpo.fontSize,
+    color: tema.colores.textoSecundario,
+    marginBottom: tema.espaciado.sm,
   },
   tarjeta: {
     backgroundColor: tema.colores.superficie,

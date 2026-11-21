@@ -1,9 +1,18 @@
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useBiblioteca } from '../context/BibliotecaContext';
 import { tema } from '../constants/tema';
 
 export function NavegadorBiblioteca() {
-  const { sesionIniciada } = useBiblioteca();
+  const { sesionIniciada, hidratando } = useBiblioteca();
+
+  if (hidratando) {
+    return (
+      <View style={styles.cargando}>
+        <ActivityIndicator size="large" color={tema.colores.primario} />
+      </View>
+    );
+  }
 
   return (
     <Stack
@@ -35,3 +44,12 @@ export function NavegadorBiblioteca() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  cargando: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tema.colores.fondo,
+  },
+});

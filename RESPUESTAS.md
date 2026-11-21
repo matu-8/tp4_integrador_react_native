@@ -8,28 +8,26 @@ SDK de Expo: 58 (`expo ~58.0.26`, `expo-router ~58.0.32`, React 19.3, React Nati
 
 Las respuestas se apoyan en el código del repositorio (`biblioteca-ipf/src`). Las rutas de archivo son relativas a `src/` y los números de línea son **orientativos**: después de los últimos cambios conviene buscar el símbolo citado si no coinciden exactamente.
 
-Una marca se repite:
-
-- **[DIFERENCIA]**: la app hoy no cumple lo que pide la Parte A. La respuesta describe lo que el código hace de verdad, no lo que la consigna esperaba.
+No quedan marcas de diferencia: las diez filas del cuadro siguiente están corregidas en el código.
 
 Cuando una respuesta cuenta qué pasa en el teléfono, lo explica con palabras simples. La única captura pedida es la de la página no encontrada, en la Parte F.
 
-### Diferencias entre la app y la consigna (corregir antes de entregar)
+### Estado de los puntos que se apartan de la consigna
 
-Estas diferencias afectan varias respuestas. Si se corrigen en el código, hay que actualizar las respuestas que las citan.
+Las diez filas están corregidas en el código y las respuestas que las citan fueron actualizadas.
 
-| # | Diferencia | Dónde |
-|---|---|---|
-| 1 | El escáner ya tiene ingreso manual y valida el ISBN contra el catálogo, pero sigue usando `useCameraPermissions` en vez de `usePermiso` (los cuatro estados se resuelven en `/permisos/[recurso]`) y un `useState` como guardián en vez de `useRef`. | `app/escanear.tsx` |
-| 2 | La reserva se ejecuta al abrir el modal; no hay botón "Confirmar". Al terminar, "Ir a mis reservas" usa `router.dismissAll()` + `router.navigate('/reservas')`, así que "atrás" no vuelve a la confirmación. | `app/reservar/[isbn].tsx:19-21, 58, 92` |
-| 3 | "Entregar al siguiente" ya comprueba si la persona es el usuario y consulta el permiso con `usePermiso('notificaciones')`; usa el estado del hook (que se relee al volver al primer plano) en vez de una consulta puntual con `getPermissionsAsync()`. | `app/mostrador.tsx:23, 37-51` |
-| 4 | Resuelto: `app.json` declara los plugins de `expo-camera` y `expo-notifications`, el texto de propósito, `microphonePermission: false`, `recordAudioAndroid: false` y `blockedPermissions`. | `app.json` |
-| 5 | El Stack del Catálogo no define `anchor`. Un deep link a `/libro/<isbn>` deja una pila sin el Catálogo debajo. | `app/(tabs)/(catalog)/_layout.tsx` |
-| 6 | Resuelto: la pantalla 404 muestra la ruta inexistente con `usePathname()`. | `app/+not-found.tsx:6, 12` |
-| 7 | La validación del ISBN del detalle ocurre después de cargar el catálogo. | `app/(tabs)/(catalog)/libro/[isbn].tsx:30-50` |
-| 8 | Resuelto: los dos libros reales están cargados con sus ISBN sin guiones (`9789501296587` y `9788447383160`). | `data/libros.ts:9-23` |
-| 9 | `Mis reservas` no muestra el estado del permiso de notificaciones (el enunciado de C4 lo da por hecho). | `app/(tabs)/reservas.tsx` |
-| 10 | Nada se persiste: al cerrar la app se pierden préstamos, listas y los identificadores de notificación. | `context/BibliotecaContext.tsx:63-67` |
+| # | Estado | Punto | Dónde |
+|---|---|---|---|
+| 1 | Corregido | `app.json` declara los plugins de `expo-camera` y `expo-notifications`, el texto de propósito, `microphonePermission: false`, `recordAudioAndroid: false` y `blockedPermissions`. | `app.json` |
+| 2 | Corregido | La pantalla 404 muestra la ruta inexistente con `usePathname()`. | `app/+not-found.tsx:6, 12` |
+| 3 | Corregido | Los dos libros reales están cargados con sus ISBN sin guiones (`9789501296587` y `9788447383160`). | `data/libros.ts:9-23` |
+| 4 | Corregido | El escáner usa `usePermiso('camara')` y un guardián `escaneandoRef` con `useRef`; conserva el ingreso manual y la validación del ISBN. | `app/escanear.tsx` |
+| 5 | Corregido | El modal muestra "Confirmar" y recién ahí aplica la reserva; "Ir a mis reservas" usa `router.dismissAll()` + `router.navigate('/reservas')`. | `app/reservar/[isbn].tsx` |
+| 6 | Corregido | "Entregar al siguiente" consulta `getPermissionsAsync()` al entregar y cae al aviso interno si no hay permiso. | `app/mostrador.tsx` |
+| 7 | Corregido | El Stack del Catálogo exporta `unstable_settings = { anchor: 'index' }`. | `app/(tabs)/(catalog)/_layout.tsx` |
+| 8 | Corregido | La validación del ISBN del detalle ocurre antes de cargar el catálogo. | `app/(tabs)/(catalog)/libro/[isbn].tsx` |
+| 9 | Corregido | `Mis reservas` muestra el estado del permiso de notificaciones y ofrece "Activar notificaciones" o "Ir a Ajustes". | `app/(tabs)/reservas.tsx` |
+| 10 | Corregido | AsyncStorage persiste préstamos, listas, avisos e identificadores de notificación; al iniciar se cancelan las notificaciones huérfanas y no se muestra la app vacía. | `context/BibliotecaContext.tsx`, `lib/notificaciones.ts`, `components/NavegadorBiblioteca.tsx` |
 
 ---
 
@@ -231,14 +229,14 @@ Lo que sigue es lo que hace el código **hoy**. Cuando difiere de la consigna, l
 
 ### a) Método del paso 4
 
-Uso `router.dismissAll()` + `router.navigate('/reservas')` (`reservar/[isbn].tsx:19-21`). Cumple la intención de A3.5: la reserva ya se hizo al abrir el modal, el botón lleva a `/reservas` y "atrás" no reabre la confirmación. Las otras opciones habrían resultado así:
+Uso `router.dismissAll()` + `router.navigate('/reservas')` (`reservar/[isbn].tsx`). Cumple la intención de A3.5: la reserva se aplica recién cuando la persona toca "Confirmar", el botón "Ir a mis reservas" lleva a `/reservas` y "atrás" no reabre la confirmación. Las otras opciones habrían resultado así:
 
 - **`push('/reservas')`**: agrega una entrada nueva encima de la pila. "Atrás" volvería al modal de confirmación, y una reserva ya hecha se podría "reconfirmar". Es lo que la consigna quiere evitar.
 - **`replace('/reservas')`**: reemplaza el modal en el Stack raíz por `/reservas`. Como esa ruta vive dentro de `(tabs)`, que ya está en la pila, existe el riesgo de terminar con una segunda instancia de las tabs en el Stack raíz.
 - **`dismissTo('/reservas')`**: descarta pantallas hasta llegar a una entrada existente de esa ruta. Es la opción más quirúrgica: cierra el modal y deja la tab "Mis reservas" activa dentro de las tabs que ya estaban, sin duplicar nada.
 - **`dismissAll()` + `navigate('/reservas')`** (la que uso): cierra todas las pantallas presentadas y navega a la tab. El resultado esperado es el mismo que con `dismissTo`, con la diferencia de que también se descarta cualquier otra pantalla modal previa.
 
-Sigue sin existir un botón "Confirmar" explícito: **[DIFERENCIA]** la reserva se aplica al abrir el modal. Eso es lo que queda pendiente de A3.5, no la navegación posterior.
+El botón "Confirmar" existe y es el único que llama a `reservar(libro)`. Un `useRef` evita confirmar dos veces si la persona toca rápido; la navegación posterior no puede rehacer la reserva.
 
 ### b) Paso 6
 
@@ -254,19 +252,19 @@ Código: `app/escanear.tsx:10-108`.
 
 ### a) `router.push` sin protección
 
-`onBarcodeScanned` se dispara muchas veces por segundo mientras el código está frente a la cámara. Cada llamada encola una acción de navegación; sin guardián, cada lectura apilaría una copia del detalle y la persona tendría que tocar atrás N veces. El guardián es `escaneando` (`:13`), comprobado al entrar a `procesarCodigo` (`:23-25`) y, además, desconectando el handler con `onBarcodeScanned={escaneando ? manejarEscaneo : undefined}` (`:66`).
+`onBarcodeScanned` se dispara muchas veces por segundo mientras el código está frente a la cámara. Cada llamada encola una acción de navegación; sin guardián, cada lectura apilaría una copia del detalle y la persona tendría que tocar atrás N veces. El guardián es `escaneandoRef` (`app/escanear.tsx`), comprobado al entrar a `procesarCodigo` y desactivado apenas se decide navegar al detalle o mostrar un `Alert`.
 
 ### b) `useState` o `useRef`
 
-Sigo usando `useState` (`:13`). **[DIFERENCIA]** Para esta función conviene `useRef`.
+Uso `useRef<boolean>(true)` (`escaneandoRef`). Para esta función conviene `useRef`.
 
-Un `useState` puesto en `false` en el primer escaneo (`:29`, `:38`, `:45`) no cambia la variable al instante: React la actualiza en el render siguiente. Los llamados a `procesarCodigo` que ya estaban en camino antes de ese render siguen leyendo `escaneando === true` en su clausura y pasan el guardián. El desconectar el handler en `:66` mitiga el problema después del render, pero queda una ventana de milisegundos en la que pueden colarse lecturas repetidas. Un `useRef` se actualiza de forma síncrona y no depende del render, así que no tiene esa ventana.
+Un `useState` puesto en `false` en el primer escaneo no cambia la variable al instante: React la actualiza en el render siguiente. Los llamados a `procesarCodigo` que ya estaban en camino antes de ese render seguirían leyendo `true` en su clausura y pasarían el guardián; desconectar el handler solo mitigaría el problema después del render. Un `useRef` se actualiza de forma síncrona y no depende del render, así que cierra esa ventana. `useFocusEffect` lo reactiva al entrar a la pantalla y limpia el valor al perder el foco.
 
 ### c) `replace` y no `push` para ir del escáner al detalle
 
 Con `replace`, el escáner sale de la pila y el detalle ocupa su lugar: al tocar atrás la persona vuelve a donde estaba antes del escáner. Con `push` (lo que hace mi código, `:47`), atrás vuelve al escáner.
 
-En mi código eso empeora porque `useFocusEffect` (`:16-20`) vuelve a poner `escaneando = true` cada vez que la pantalla recupera el foco. Si el libro sigue frente a la cámara, vuelve a leer el código y abre otra vez el detalle. Es un ciclo: escanear → detalle → atrás → escanear → detalle, que se repetiría mientras el libro siga enfrente. Una salida posible sería `router.replace`, pero el enunciado pide `push` con guardián, así que lo dejo como está y marco el riesgo.
+El guardián evita lecturas duplicadas mientras se abre el detalle, pero `useFocusEffect` vuelve a poner `escaneandoRef.current = true` cada vez que la pantalla recupera el foco. Si el libro sigue frente a la cámara, puede leerlo otra vez y abrir otro detalle: escanear → detalle → atrás → escanear → detalle. Una salida posible sería `router.replace`, pero el enunciado pide `push` con guardián, así que se conserva `push` y se documenta el riesgo.
 
 ### d) ISBN que no está en el catálogo
 
@@ -276,7 +274,7 @@ Para códigos que no son un ISBN de 13 dígitos, muestra un `Alert` "Código no 
 
 ### e) Ingreso manual y funcionamiento sin cámara
 
-La pantalla tiene un `TextInput` para escribir el ISBN (`:95`) y un botón que llama a `procesarCodigo(isbnManual)` (`:103-108`): pasa por las mismas validaciones que el escáner. Si `useCameraPermissions` (`:11`) no concede la cámara, la vista de cámara no se monta y queda disponible solo el ingreso manual, con un enlace a `/permisos/camara` para habilitarla.
+La pantalla tiene un `TextInput` para escribir el ISBN y un botón que llama a `procesarCodigo(isbnManual)`: pasa por las mismas validaciones que el escáner. Si `usePermiso('camara')` no concede la cámara, la vista de cámara no se monta y queda disponible solo el ingreso manual. Cuando el permiso está `bloqueado`, el botón "Habilitar cámara" abre `/permisos/camara`; cuando está `preguntable`, pide el permiso.
 
 ## C3. Deep links y rutas protegidas
 
@@ -284,17 +282,17 @@ Los links que siguen salen del código y de Expo Router SDK 58. En Expo Go se pr
 
 | Link | Qué ve la persona | Qué queda debajo en la pila | Qué parte del código lo decide |
 |---|---|---|---|
-| `bibliotecaipf://libro/` + ISBN existente | El detalle del libro (primero "Cargando detalle...", y con 20% de probabilidad el error de conexión con "Reintentar"). | Stack raíz: `[(tabs)]`. Stack de la tab: solo `[libro/[isbn]]`: no hay Catálogo debajo y el header no muestra flecha atrás. **[DIFERENCIA]** | `(tabs)/(catalog)/_layout.tsx`: no define `unstable_settings.anchor`. Según la guía de migración a SDK 58, ese valor se lee del layout del propio Stack. Falta `anchor: 'index'`. |
-| `bibliotecaipf://libro/123` | El detalle con el mensaje "El ISBN ingresado no es válido. Debe tener 13 dígitos." y el botón "Volver al Catálogo". Primero pasa por el cargando (y puede aparecer el error de conexión en lugar del mensaje, **[DIFERENCIA]**). | Lo mismo que arriba. | `libro/[isbn].tsx:8` (regex) y `:50-65` (validación y mensaje). |
+| `bibliotecaipf://libro/` + ISBN existente | El detalle del libro (primero "Cargando detalle...", y con 20% de probabilidad el error de conexión con "Reintentar"). | Stack raíz: `[(tabs)]`. Stack de la tab: `[index, libro/[isbn]]`: el Catálogo queda debajo y el header muestra la flecha atrás. | `(tabs)/(catalog)/_layout.tsx`: exporta `unstable_settings = { anchor: 'index' }`. En SDK 58 el valor se lee del layout del propio Stack. |
+| `bibliotecaipf://libro/123` | El detalle con el mensaje "El ISBN ingresado no es válido. Debe tener 13 dígitos." y el botón "Volver al Catálogo", sin pasar por "Cargando detalle...". | Lo mismo que arriba: el Catálogo queda debajo. | `libro/[isbn].tsx` (regex y validación del formato antes de `cargando`). |
 | `bibliotecaipf://buscar?q=borges` | El buscador con "borges" cargado. Los resultados aparecen tras 300 ms de debounce más la demora de la API. | Stack raíz: `[(tabs), buscar]`. Debajo está el Catálogo. | `app/_layout.tsx:6-8`: `anchor: '(tabs)'`. |
 | `bibliotecaipf://mostrador` (sin sesión) | El Catálogo. No se ve login ni 404. | Stack raíz: `[(tabs)]`. | `NavegadorBiblioteca.tsx:26-28`: `Stack.Protected guard={sesionIniciada}`. Con la guarda en `false`, la ruta es inaccesible y Expo Router redirige a la ruta ancla o a la primera disponible (docs de rutas protegidas). |
 | `bibliotecaipf://reserva` | "Mis reservas". | Stack raíz: `[(tabs)]` con la tab "Mis reservas" activa. Es posible que quede una entrada extra en el Stack raíz. | `app/reserva.tsx:4`: `<Redirect href="/reservas" />`. |
-| `bibliotecaipf://escanear` (cámara bloqueada) | Sin cámara, el escáner muestra "Sin cámara también podés encontrar el libro escribiendo su ISBN.", el campo manual y el botón "Habilitar cámara". Como `canAskAgain` es `false`, el botón abre `/permisos/camara` con "Abrir Ajustes". | Stack raíz: `[(tabs), escanear, permisos/[recurso]]`. | `escanear.tsx:75-108` (en particular `:85`) y `permisos/[recurso].tsx:47-50`. |
+| `bibliotecaipf://escanear` (cámara bloqueada) | Sin cámara, el escáner muestra "Sin cámara también podés encontrar el libro escribiendo su ISBN.", el campo manual y el botón "Habilitar cámara". Como el estado de `usePermiso('camara')` es `bloqueado`, el botón abre `/permisos/camara` con "Abrir Ajustes". | Stack raíz: `[(tabs), escanear, permisos/[recurso]]`. | `escanear.tsx` (botón "Habilitar cámara") y `permisos/[recurso].tsx`. |
 | `bibliotecaipf://ruta-inexistente` | La pantalla 404 con el mensaje "La siguiente ruta no existe en la app:" y la ruta debajo. | No queda una entrada nueva: es la ruta de fallback del router. | `app/+not-found.tsx:6, 11-12` (`usePathname`). |
 
 **¿Por qué `/libro/123` llega a la pantalla de detalle aunque no exista ningún libro con ese ISBN?** Porque `[isbn]` es un segmento dinámico y coincide con cualquier texto. El router solo comprueba la forma de la URL, no si el dato existe. Además, el catálogo se carga de forma asíncrona, así que el router no podría saberlo.
 
-**¿De quién es la responsabilidad de responder bien?** De la pantalla de detalle: validar el parámetro y mostrar un mensaje claro. En mi código lo hace `libro/[isbn].tsx:50`, aunque **[DIFERENCIA]** lo hace después de la carga. Debería validar el formato antes de pedir nada.
+**¿De quién es la responsabilidad de responder bien?** De la pantalla de detalle: validar el parámetro y mostrar un mensaje claro. En mi código lo hace `libro/[isbn].tsx`: valida el formato antes de entrar al estado `cargando`, así que un ISBN mal formado no espera a la API.
 
 ## C4. Foco, montaje y primer plano
 
@@ -313,7 +311,7 @@ Los links que siguen salen del código y de Expo Router SDK 58. En Expo Go se pr
 
 `usePermiso` (`hooks/usePermiso.ts:54-94`) usa `useEffect` para la lectura inicial y `AppState.addEventListener('change', ...)` para releer el permiso cuando la app vuelve a `active` (`:72-88`). No usé `useFocusEffect`. `AppState` cubre el caso real: el permiso solo puede cambiar fuera de la app.
 
-Caso donde mi pantalla muestra un estado viejo: el interruptor "Recordarme" lee `item.recordar` del Context (`reservas.tsx:139`), no el permiso real. Si la persona apaga las notificaciones en Ajustes con un recordatorio ya activo, el interruptor sigue en "encendido", la app no cancela nada y la notificación no se muestra. **[DIFERENCIA]** Además, la pantalla no muestra el estado del permiso en ningún lado: solo lo usa al activar el interruptor.
+Caso donde la pantalla puede mostrar un estado viejo: el interruptor "Recordarme" lee `item.recordar` del Context (`reservas.tsx`), no el permiso real. Si la persona apaga las notificaciones en Ajustes con un recordatorio ya activo, el interruptor sigue en "encendido", la app no cancela nada y la notificación no se muestra. El estado del permiso ahora se muestra en "Mis reservas", con "Activar notificaciones" o "Ir a Ajustes" según corresponda, pero el interruptor sigue representando la preferencia guardada, no el permiso del sistema.
 
 ---
 
@@ -372,19 +370,14 @@ La notificación igual llegaría a los 15 segundos y recordaría devolver un lib
 
 ### b) Dónde guardo el identificador y qué pasa si se cierra la app
 
-El identificador se guarda en el Context, dentro del préstamo (`notificacionId`, `BibliotecaContext.tsx:26`), en memoria (`useState`). **[DIFERENCIA]** No hay persistencia.
+El identificador se guarda en el Context, dentro del préstamo (`notificacionId`), y ahora se persiste con `@react-native-async-storage/async-storage` junto con `prestamos`, `esperas` y `avisos`. `BibliotecaProvider` hidrata antes de mostrar el navegador: `NavegadorBiblioteca` muestra un `ActivityIndicator` mientras `hidratando` es `true`, así que no se ve la app vacía.
 
 Si la app se cierra antes de que llegue la notificación:
 
 - La notificación **sí llega**: la programa el sistema operativo, no la app. Es una notificación local programada, así que no depende de que la app esté abierta.
-- El identificador **se pierde**: al reabrir la app el Context vuelve a empezar con `prestamos = []`.
+- El identificador **ya no se pierde**: al reabrir, el Context recupera los préstamos desde AsyncStorage.
 
-El problema es una notificación huérfana. Llega un aviso de devolución de un libro que la app ya no conoce, y no hay forma de cancelarla porque se perdió su identificador. Si la persona devolvió el libro, tampoco hay forma de apagarla.
-
-Cómo lo resolvería:
-
-1. Persistir préstamos e identificadores con `@react-native-async-storage/async-storage` y cargarlos al iniciar (sin mostrar la app vacía mientras carga).
-2. Al arrancar, comparar los identificadores guardados con `getAllScheduledNotificationsAsync()` y cancelar los que no tengan un préstamo asociado.
+Al arrancar, `cancelarNotificacionesHuerfanas(...)` compara los identificadores guardados con `getAllScheduledNotificationsAsync()` y cancela los que no tienen un préstamo asociado. Así se evita el aviso de devolución de un libro que la app ya no conoce y se puede apagar aunque la persona haya devuelto el libro estando la app cerrada.
 
 ### c) El canal antes de pedir el permiso en Android 13 o superior
 
@@ -407,7 +400,10 @@ const entregar = async (libro: Libro) => {
   if (!siguiente) { return; }
 
   if (siguiente === ALUMNO.identificadorUsuario) {
-    if (estadoNotificaciones === 'concedido') {
+    const respuesta = await getPermissionsAsync().catch(() => null);
+    const concedido = respuesta?.granted === true || respuesta?.status === 'granted';
+
+    if (concedido) {
       await enviarAvisoDisponible(libro.titulo).catch(() => undefined);
       Alert.alert('Entrega registrada', `Se avisó a ${siguiente} que "${libro.titulo}" está disponible.`);
     } else {
@@ -425,9 +421,9 @@ const entregar = async (libro: Libro) => {
 - Si es el usuario y el permiso está concedido, se envía la notificación local y se confirma por alerta.
 - Si es el usuario y el permiso no está concedido, se agrega el aviso a `/reservas` (`agregarAviso`) y la alerta lo dice. Ese aviso dentro de la app es lo que la persona ve en el recuadro "Avisos" (`reservas.tsx:111-120`).
 
-**Precisión / [DIFERENCIA]:** el permiso se lee del estado de `usePermiso('notificaciones')` (`:23`), no con una consulta puntual a `getPermissionsAsync()` al momento de entregar. El hook ya relee el permiso al volver al primer plano (`AppState`, `usePermiso.ts:72-88`), así que la copia suele estar alineada; aun así, el enunciado pide consultarlo en el momento. Para cumplirlo literalmente habría que llamar a `getPermissionsAsync()` dentro de `entregar`.
+**Consulta en el momento:** `entregar` llama a `getPermissionsAsync()` apenas se confirma la entrega; ya no reutiliza el estado del hook. Si la consulta falla, se trata como permiso no concedido y queda el aviso dentro de la app. Así un cambio hecho en Ajustes se refleja aunque `AppState` no haya disparado.
 
-**¿Consulta el permiso en ese momento o usa un valor guardado?** Hoy usa un valor guardado en el estado del hook. Lo correcto según el enunciado sería consultarlo en el momento, porque la persona puede cambiarlo en Ajustes y una copia puede quedar desactualizada; el `AppState` mitiga el riesgo pero no lo elimina.
+**¿Consulta el permiso en ese momento o usa un valor guardado?** Consulta el permiso en el momento, como pide el enunciado, porque la persona puede cambiarlo en Ajustes y una copia en estado podría quedar desactualizada.
 
 ## D3. Lo que tu app pide y lo que no
 
@@ -738,16 +734,16 @@ Hay una debilidad que una API real expondría: `useLibros()` se llama en seis pa
 | Situación | Qué ve la persona | Dónde se maneja (archivo y línea) |
 |---|---|---|
 | `obtenerLibros()` falla | En el Catálogo (y en las otras pantallas que cargan datos): el mensaje "No se pudo conectar con el catálogo de la biblioteca. Intentá de nuevo." y el botón "Reintentar". | `hooks/useLibros.ts:35-39` (mensaje) y `app/(tabs)/(catalog)/index.tsx:25-38` (pantalla y botón). |
-| Se abre `/libro/abc` | Primero "Cargando detalle...". Luego "El ISBN ingresado no es válido. Debe tener 13 dígitos." y el botón "Volver al Catálogo". Si el catálogo falla al cargar, ve el error de conexión en vez del mensaje del ISBN. **[DIFERENCIA]** por el orden de la validación. | `libro/[isbn].tsx:8` (regex), `:30-50` (validación y mensaje). |
+| Se abre `/libro/abc` | Muestra enseguida "El ISBN ingresado no es válido. Debe tener 13 dígitos." y el botón "Volver al Catálogo"; no aparece "Cargando detalle..." antes. | `libro/[isbn].tsx` (regex y validación antes de `cargando`). |
 | Se escanea un ISBN que no está en el catálogo | Ya no abre el detalle: con el catálogo cargado, un `Alert` "Libro no encontrado" ofrece "Seguir escaneando" y vuelve a habilitar la cámara. Si el catálogo aún carga o falló, el mensaje lo da el detalle. | `escanear.tsx:36-43`; `libro/[isbn].tsx:50-62`. |
 | La cámara está bloqueada | La pantalla previa muestra "Abrir Ajustes" y la ayuda "El permiso está bloqueado...". En el escáner, sin cámara: "Sin cámara también podés encontrar el libro escribiendo su ISBN.", campo manual y botón "Habilitar cámara" que abre `/permisos/camara`. | `permisos/[recurso].tsx:44-58` y `escanear.tsx:75-108`. |
 | Las notificaciones están denegadas | Al activar "Recordarme": una alerta "Notificaciones desactivadas" que explica que los avisos aparecerán en la pantalla. El interruptor queda apagado. Desde el mostrador, si le toca a este usuario: se agrega un aviso en "Mis reservas" en vez de una notificación. | `reservas.tsx:51-59`; `mostrador.tsx:37-48` (D2d). |
 | Se intenta reservar un libro ya reservado | En el detalle no aparece el botón "Reservar": se ve "Ya tenés este libro en préstamo." o "Ya estás en la lista de espera (posición N)". Si se llega por deep link a `/reservar/<isbn>`, el modal dice "Ya está reservado". | `libro/[isbn].tsx:69, 97-102`; `reservar/[isbn].tsx:69-84`; `BibliotecaContext.tsx:129-131`. |
-| Termina la reserva | El botón "Ir a mis reservas" cierra el modal con `dismissAll()` y navega a la tab; "atrás" no vuelve a la confirmación. Sigue sin haber un botón "Confirmar" previo. | `reservar/[isbn].tsx:19-21, 58, 92`. |
+| Termina la reserva | La persona toca "Confirmar", ve el resultado y después "Ir a mis reservas" cierra el modal con `dismissAll()` y navega a la tab; "atrás" no vuelve a la confirmación. | `reservar/[isbn].tsx` (botones "Confirmar" e "Ir a mis reservas"). |
 | "Entregar al siguiente" con la lista de espera vacía | El botón no aparece: el mostrador solo lista libros con espera (`conEspera`). Si no hay ninguno: "No hay reservas en espera en este momento." Si igual se llamara con lista vacía, no pasa nada visible. | `mostrador.tsx:26` (filtro), `:95-97` (mensaje vacío) y `:33-35` (`if (!siguiente) return`). |
 | Login con clave incorrecta | "Usuario o clave incorrectos. Verificá los datos e intentá de nuevo." | `login.tsx:21-29`; credenciales en `constants/personal.ts` y `BibliotecaContext.tsx:69-77`. |
 
-Filas que siguen pendientes antes de entregar: la validación del ISBN en el detalle ocurre después de la carga (C3), `/reservas` no muestra el estado del permiso y nada se persiste al cerrar la app. El escáner ya avisa el ISBN inexistente y ofrece ingreso manual, el mostrador ya decide según el usuario y el permiso, y los dos libros reales ya están cargados, así que esas tres filas dejaron de ser diferencias. En "Entregar al siguiente" con lista vacía el caso no es alcanzable desde la interfaz, pero el retorno silencioso de `mostrador.tsx:33-35` no da ningún mensaje.
+Los diez puntos del inicio están corregidos. En estas situaciones se ve el cambio: el ISBN se valida antes de cargar (C3), `/reservas` muestra el estado del permiso y los datos sobreviven al cierre de la app. También están el botón "Confirmar", el guardián con `useRef` en el escáner, el `anchor` del Catálogo y la consulta puntual del permiso en el mostrador. En "Entregar al siguiente" con lista vacía el caso no es alcanzable desde la interfaz: el botón no aparece y el retorno silencioso de `mostrador.tsx` es solo una defensa interna.
 
 ## E4. Decisiones con argumentos
 
@@ -816,4 +812,8 @@ Un solo campo: la pantalla de página no encontrada (404 / not found). La captur
 | Página no encontrada (404 / not found) | ![Página no encontrada](img/not-found-page.png) |
 
 Para verla, abrir una ruta que no existe, por ejemplo `exp://IP:8081/--/ruta-inexistente` en Expo Go. La pantalla muestra el mensaje "La siguiente ruta no existe en la app:" y la ruta debajo (`app/+not-found.tsx`).
+
+Verificación final: `npx tsc --noEmit` y `npx expo lint` pasan sin errores.
+
+
 Las demás pruebas se pueden visualizar en este video de YouTube: https://youtube.com/shorts/mTMtU2-vOrQ?feature=share

@@ -20,12 +20,28 @@ export default function DetalleScreen() {
   } = useBiblioteca();
 
   const libro = libros.find((item) => item.isbn === isbn);
+  const formatoValido = Boolean(isbn && ISBN_VALIDO.test(isbn));
 
   useEffect(() => {
     if (libro) {
       registrarReciente(libro);
     }
   }, [libro, registrarReciente]);
+
+  if (!formatoValido) {
+    return (
+      <View style={styles.centrado}>
+        <Text style={styles.mensajeError}>
+          El ISBN ingresado no es válido. Debe tener 13 dígitos.
+        </Text>
+        <Link href="/" asChild>
+          <Pressable accessibilityRole="button" style={styles.botonPrimario}>
+            <Text style={styles.textoBotonPrimario}>Volver al Catálogo</Text>
+          </Pressable>
+        </Link>
+      </View>
+    );
+  }
 
   if (cargando) {
     return (
@@ -47,13 +63,11 @@ export default function DetalleScreen() {
     );
   }
 
-  if (!isbn || !ISBN_VALIDO.test(isbn) || !libro) {
+  if (!libro) {
     return (
       <View style={styles.centrado}>
         <Text style={styles.mensajeError}>
-          {isbn && !ISBN_VALIDO.test(isbn)
-            ? 'El ISBN ingresado no es válido. Debe tener 13 dígitos.'
-            : 'No encontramos un libro con ese ISBN en la biblioteca.'}
+          No encontramos un libro con ese ISBN en la biblioteca.
         </Text>
         <Link href="/" asChild>
           <Pressable accessibilityRole="button" style={styles.botonPrimario}>
