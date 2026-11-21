@@ -1,12 +1,15 @@
-import { Link } from 'expo-router';
+import { Link, usePathname } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { tema } from '../constants/tema';
 
 export default function NoEncontradoScreen() {
+  const ruta = usePathname();
+
   return (
     <View style={styles.contenedor}>
       <Text style={styles.titulo}>Pantalla no encontrada</Text>
-      <Text style={styles.mensaje}>La ruta que buscás no existe.</Text>
+      <Text style={styles.mensaje}>La siguiente ruta no existe en la app:</Text>
+      <Text style={styles.ruta}>{ruta}</Text>
       <Link href="/" asChild>
         <Pressable accessibilityRole="button" style={styles.boton}>
           <Text style={styles.textoBoton}>Volver al catálogo</Text>
@@ -34,6 +37,16 @@ const styles = StyleSheet.create({
     fontSize: tema.tipografia.cuerpo.fontSize,
     color: tema.colores.textoSecundario,
     marginTop: tema.espaciado.sm,
+    textAlign: 'center',
+  },
+  ruta: {
+    fontSize: tema.tipografia.cuerpo.fontSize,
+    fontWeight: '600',
+    color: tema.colores.error,
+    backgroundColor: tema.colores.superficie,
+    borderRadius: tema.radios.md,
+    padding: tema.espaciado.md,
+    marginTop: tema.espaciado.md,
     marginBottom: tema.espaciado.lg,
     textAlign: 'center',
   },
