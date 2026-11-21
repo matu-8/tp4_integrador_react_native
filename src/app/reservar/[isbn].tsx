@@ -16,6 +16,11 @@ export default function ReservarScreen() {
 
   const libro = libros.find((item) => item.isbn === isbn);
 
+  const irAReservas = () => {
+    router.dismissAll();
+    router.navigate('/reservas');
+  };
+
   useEffect(() => {
     if (libro && !ejecutado.current) {
       ejecutado.current = true;
@@ -50,8 +55,8 @@ export default function ReservarScreen() {
         <View style={styles.centrado}>
           <Stack.Screen options={{ title: 'Reservar' }} />
           <Text style={styles.textoError}>No encontramos ese libro.</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.boton}>
-            <Text style={styles.textoBoton}>Cerrar</Text>
+          <Pressable accessibilityRole="button" onPress={irAReservas} style={styles.boton}>
+            <Text style={styles.textoBoton}>Ir a mis reservas</Text>
           </Pressable>
         </View>
       );
@@ -84,8 +89,8 @@ export default function ReservarScreen() {
               : 'Ya está reservado'}
         </Text>
         <Text style={styles.mensaje}>{mensaje}</Text>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.boton}>
-          <Text style={styles.textoBoton}>Volver al detalle</Text>
+        <Pressable accessibilityRole="button" onPress={irAReservas} style={styles.boton}>
+          <Text style={styles.textoBoton}>Ir a mis reservas</Text>
         </Pressable>
       </View>
     );
