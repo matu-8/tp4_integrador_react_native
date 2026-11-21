@@ -8,9 +8,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useLibros } from '../hooks/useLibros';
+import { usePermiso } from '../hooks/usePermiso';
 import { useBiblioteca } from '../context/BibliotecaContext';
+import { ALUMNO } from '../constants/alumno';
 import { tema } from '../constants/tema';
 import { enviarAvisoDisponible } from '../lib/notificaciones';
 import type { Libro } from '../types';
@@ -18,6 +20,7 @@ import type { Libro } from '../types';
 export default function MostradorScreen() {
   const { libros, cargando, error, reintentar } = useLibros();
   const { esperaDe, entregarSiguiente, agregarAviso, cerrarSesion } = useBiblioteca();
+  const { estado: estadoNotificaciones } = usePermiso('notificaciones');
   const [procesando, setProcesando] = useState<string | null>(null);
 
   const conEspera = libros.filter((libro) => esperaDe(libro.isbn).length > 0);
@@ -31,14 +34,25 @@ export default function MostradorScreen() {
       return;
     }
 
-    await enviarAvisoDisponible(libro.titulo).catch(() => undefined);
-    agregarAviso(`Se avisó a ${siguiente} que "${libro.titulo}" está disponible.`);
-    Alert.alert('Entrega registrada', `Se avisó a ${siguiente} que "${libro.titulo}" está disponible.`);
+    if (siguiente === ALUMNO.identificadorUsuario) {
+      if (estadoNotificaciones === 'concedido') {
+        await enviarAvisoDisponible(libro.titulo).catch(() => undefined);
+        Alert.alert('Entrega registrada', `Se avisó a ${siguiente} que "${libro.titulo}" está disponible.`);
+      } else {
+        agregarAviso(`"${libro.titulo}" está disponible para retirar en el mostrador.`);
+        Alert.alert(
+          'Entrega registrada',
+          `${siguiente} verá el aviso en "Mis reservas".`,
+        );
+      }
+      return;
+    }
+
+    Alert.alert('Entrega registrada', `Le tocaba a ${siguiente}.`);
   };
 
   const salir = () => {
     cerrarSesion();
-    router.back();
   };
 
   return (
