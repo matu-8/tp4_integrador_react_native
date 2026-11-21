@@ -7,18 +7,18 @@ import type { Libro } from '../types';
  * ----------------------------------------------------------------------
  */
 export const LIBRO_REAL_1 = {
-  isbn: '', // 13 dígitos numéricos sin guiones (ej: '9789871234567')
-  titulo: '',
-  autor: '',
-  anio: 2024,
+  isbn: '9789501296587',
+  titulo: 'Astrofísica para gente apurada',
+  autor: 'Neil deGrasse Tyson',
+  anio: 2018,
   ejemplares: 2,
 };
 
 export const LIBRO_REAL_2 = {
-  isbn: '', // 13 dígitos numéricos sin guiones (ej: '9789877654321')
-  titulo: '',
-  autor: '',
-  anio: 2024,
+  isbn: '9788447383160',
+  titulo: 'Aristóteles: el hombre feliz y la sociedad justa son los que buscan el equilibrio entre extremos',
+  autor: 'Oriol Ponsatí-Murlà',
+  anio: 2015,
   ejemplares: 1,
 };
 

@@ -71,8 +71,8 @@ src/
 ## Credenciales y datos de prueba
 
 - Personal: usuario `admin`, clave `ipf2024` (en `src/constants/personal.ts`).
-- Usuario alumno: identificador `Yo` (en `src/constants/alumno.ts`).
-- `src/data/libros.ts` tiene 15 libros: 13 de catálogo base y 2 placeholders para libros físicos. Completar `LIBRO_REAL_1` y `LIBRO_REAL_2` con los ISBN reales de dos libros a mano y el nombre/apellido en `src/constants/alumno.ts` antes de entregar.
+- Usuario alumno: Matías Agüero, identificador interno `Yo` (en `src/constants/alumno.ts`).
+- `src/data/libros.ts` tiene 15 libros: 13 de catálogo base y 2 libros físicos reales (`LIBRO_REAL_1` y `LIBRO_REAL_2`) con sus ISBN sin guiones.
 
 ## Verificación
 
