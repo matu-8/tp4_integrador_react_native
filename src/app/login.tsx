@@ -22,7 +22,6 @@ export default function LoginScreen() {
     const valido = iniciarSesion(usuario, clave);
     if (valido) {
       setError(null);
-      router.back();
       return;
     }
     setError('Usuario o clave incorrectos. Verificá los datos e intentá de nuevo.');
